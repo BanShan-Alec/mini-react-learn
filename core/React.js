@@ -41,5 +41,6 @@ export function render(el, container) {
 
 export default {
     createElement,
-    render
+    render,
+    createTextElement
 }
