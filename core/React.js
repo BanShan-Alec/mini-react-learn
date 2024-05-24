@@ -29,9 +29,17 @@ export function render(el, container) {
     })
 
     // 递归渲染子元素
+    // TODO 深度优先遍历会导致渲染卡顿
     el.props.children.forEach((child) => {
         render(child, dom);
     })
 
+
+
     container.appendChild(dom);
+}
+
+export default {
+    createElement,
+    render
 }
