@@ -1,9 +1,3 @@
-import { createElement } from '../core/React.js';
-
-export const App = createElement('div', { id: 'app' }, 'Hello World', '@@@123')
-
-// import React from '../core/React.js';
-// export const App = <div>Hello World123</div>;
-// export const App = () => {
-//     return <div>Hello World123</div>
-// }
+/* @jsx React.createElement */
+import React from '../core/React.js';
+export const App = <div id='123'>Hello World123<span>!!!!</span></div>;
