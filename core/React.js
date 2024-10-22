@@ -49,14 +49,12 @@ const constructFiber = (el, parent) => {
 
 const handleFiber = (fiber) => {
     if (!fiber.dom) {
-        // 渲染当前Dom
+        // 每遍历一个Dom就渲染一次
+        // FIXME：requestIdleCallback卡顿的时间很长的情况，会导致整个dom竖渲染不连贯
         const dom = (fiber.dom = createDomByType(fiber.el.type));
         handleDomProps(dom, fiber.el.props);
-        fiber.parent?.dom.appendChild(dom);
+        // fiber.parent?.dom.appendChild(dom);
     }
-    // if (fiber.dom && fiber.parent) {
-    //     return fiber.parent;
-    // }
 
     // 树结构（前序遍历）展开为链表，一边遍历一边构建链表
     // https://leetcode.cn/problems/flatten-binary-tree-to-linked-list/solutions/356853/er-cha-shu-zhan-kai-wei-lian-biao-by-leetcode-solu
@@ -94,18 +92,32 @@ const handleFiber = (fiber) => {
 };
 
 let nextFiber = null;
+let firstFiber = null;
 function workLoop(deadline) {
     while (deadline.timeRemaining() > 1) {
         // 执行任务
         if (nextFiber) {
             console.log('workLoop: do work');
-
+            if (!firstFiber) firstFiber = nextFiber;
             nextFiber = handleFiber(nextFiber);
+        } else {
+            console.log('workLoop: work end');
+            // 等待链表构建完成，再渲染
+            if (!firstFiber) return;
+            console.log('render: start', firstFiber);
+            commitWork(firstFiber);
+            firstFiber = null;
         }
     }
     requestIdleCallback(workLoop);
 }
 requestIdleCallback(workLoop);
+
+function commitWork(fiber) {
+    if (fiber.parent) fiber.parent.dom.appendChild(fiber.dom);
+    if (fiber.child) commitWork(fiber.child);
+    if (fiber.sibling) commitWork(fiber.sibling);
+}
 
 export function render(el, container) {
     const rootFiber = constructFiber(
@@ -119,9 +131,6 @@ export function render(el, container) {
     );
     rootFiber.dom = container;
     nextFiber = rootFiber;
-    setTimeout(() => {
-        console.log('render: start', rootFiber.child);
-    }, 1000);
 }
 
 export default {
