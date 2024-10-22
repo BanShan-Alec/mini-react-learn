@@ -76,16 +76,24 @@ const handleFiber = (fiber) => {
         return fiber.child;
     }
 
-    if (fiber.sibling) {
-        return fiber.sibling;
-    }
+    // if (fiber.sibling) {
+    //     return fiber.sibling;
+    // }
 
     // FIXME: return parent.sibling，会找不到爷爷节点的兄弟节点（只有一层）
     // 一直向上找，直到找到有兄弟节点的节点
+    // let tmpFiber = fiber;
+    // while (tmpFiber.parent) {
+    //     if (tmpFiber.parent.sibling) {
+    //         return tmpFiber.parent.sibling;
+    //     }
+    //     tmpFiber = tmpFiber.parent;
+    // }
+
     let tmpFiber = fiber;
-    while (tmpFiber.parent) {
-        if (tmpFiber.parent.sibling) {
-            return tmpFiber.parent.sibling;
+    while (tmpFiber) {
+        if (tmpFiber.sibling) {
+            return tmpFiber.sibling;
         }
         tmpFiber = tmpFiber.parent;
     }
