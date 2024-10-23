@@ -48,7 +48,11 @@ const constructFiber = (el, parent) => {
 };
 
 const handleFiber = (fiber) => {
-    if (!fiber.dom) {
+    if (typeof fiber.el.type === 'function') {
+        fiber.el.props.children = [fiber.el.type(fiber.el.props)];
+        console.log('handleFiber: FC', fiber);
+    } else if (!fiber.dom) {
+        // 如果是FC，type是函数，执行后返回的是对象
         // 每遍历一个Dom就渲染一次
         // FIXME：requestIdleCallback卡顿的时间很长的情况，会导致整个dom竖渲染不连贯
         const dom = (fiber.dom = createDomByType(fiber.el.type));
@@ -122,7 +126,18 @@ function workLoop(deadline) {
 requestIdleCallback(workLoop);
 
 function commitWork(fiber) {
-    if (fiber.parent) fiber.parent.dom.appendChild(fiber.dom);
+    // if (fiber.parent) fiber.parent.dom.appendChild(fiber.dom);
+    // 因为FC的fiber.dom是不存在的，所以需要循环向上查找parent的dom
+    if (fiber.dom) {
+        let tmpFiber = fiber;
+        while (tmpFiber) {
+            if (tmpFiber.parent?.dom) {
+                tmpFiber.parent.dom.appendChild(fiber.dom);
+                break;
+            }
+            tmpFiber = tmpFiber.parent;
+        }
+    }
     if (fiber.child) commitWork(fiber.child);
     if (fiber.sibling) commitWork(fiber.sibling);
 }
