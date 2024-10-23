@@ -16,6 +16,7 @@ export const App = () => {
                 <b>react</b>
             </p>
             <Counter count={10}></Counter>
+            <Counter count={300}></Counter>
         </div>
     )
 };

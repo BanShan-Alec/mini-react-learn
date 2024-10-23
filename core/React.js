@@ -47,21 +47,16 @@ const constructFiber = (el, parent) => {
     };
 };
 
-const handleFiber = (fiber) => {
-    if (typeof fiber.el.type === 'function') {
-        fiber.el.props.children = [fiber.el.type(fiber.el.props)];
-        console.log('handleFiber: FC', fiber);
-    } else if (!fiber.dom) {
-        // 如果是FC，type是函数，执行后返回的是对象
-        // 每遍历一个Dom就渲染一次
-        // FIXME：requestIdleCallback卡顿的时间很长的情况，会导致整个dom竖渲染不连贯
+const handleFunctionComponent = (fiber) => {
+    fiber.el.props.children = [fiber.el.type(fiber.el.props)];
+};
+const handleNormalComponent = (fiber) => {
+    if (!fiber.dom) {
         const dom = (fiber.dom = createDomByType(fiber.el.type));
         handleDomProps(dom, fiber.el.props);
-        // fiber.parent?.dom.appendChild(dom);
     }
-
-    // 树结构（前序遍历）展开为链表，一边遍历一边构建链表
-    // https://leetcode.cn/problems/flatten-binary-tree-to-linked-list/solutions/356853/er-cha-shu-zhan-kai-wei-lian-biao-by-leetcode-solu
+};
+const handleFiberRelation = (fiber) => {
     const children = fiber.el.props.children;
     let prevChild = null;
     children.forEach((child) => {
@@ -73,6 +68,19 @@ const handleFiber = (fiber) => {
         }
         prevChild = childFiber;
     });
+};
+
+const handleFiber = (fiber) => {
+    const isFunctionComponent = typeof fiber.el.type === 'function';
+    if (isFunctionComponent) {
+        handleFunctionComponent(fiber);
+    } else {
+        handleNormalComponent(fiber);
+    }
+
+    // 树结构（前序遍历）展开为链表，一边遍历一边构建链表
+    // https://leetcode.cn/problems/flatten-binary-tree-to-linked-list/solutions/356853/er-cha-shu-zhan-kai-wei-lian-biao-by-leetcode-solu
+    handleFiberRelation(fiber);
 
     // 返回下一个fiber
     // 返回undefined，表示渲染结束
