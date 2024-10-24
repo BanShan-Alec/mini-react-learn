@@ -86,7 +86,7 @@ const handleFiberRelation = (fiber) => {
 };
 
 const handleFiber = (fiber) => {
-    // console.log('handleFiber', fiber);
+    console.log('handleFiber', fiber);
     const isFunctionComponent = typeof fiber.el.type === 'function';
     if (isFunctionComponent) {
         handleFunctionComponent(fiber);

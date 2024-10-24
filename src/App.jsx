@@ -3,13 +3,17 @@ import React from '../core/React.js';
 
 const Counter = (props) => {
     console.log('Counter', props);
+    const testArr = [1, 2, 3];
 
     return (
         <>
             <div>{props.children}</div>
-            <p>
-                count: {props.count}
-            </p>
+            <div>
+                {testArr.map((item) => {
+                    return <div key={item}>{item}</div>;
+                })}
+            </div>
+            <p>count: {props.count}</p>
         </>
     );
 };
