@@ -3,9 +3,16 @@ import React from '../core/React.js';
 
 const Counter = (props) => {
     console.log('Counter', props);
-    
-    return <p>count: {props.count}</p>
-}
+
+    return (
+        <>
+            <div>{props.children}</div>
+            <p>
+                count: {props.count}
+            </p>
+        </>
+    );
+};
 
 export const App = () => {
     return (
@@ -15,8 +22,8 @@ export const App = () => {
                 <a target="#">linK </a>
                 <b>react</b>
             </p>
-            <Counter count={10}></Counter>
             <Counter count={300}></Counter>
+            <Counter count={10}>TEST123</Counter>
         </div>
-    )
+    );
 };

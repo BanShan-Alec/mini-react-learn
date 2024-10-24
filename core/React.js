@@ -9,13 +9,20 @@ export const createTextElement = (text) => {
 };
 
 export const createElement = (type, props, ...children) => {
+    const getChildren = () => {
+        return children.flatMap((child) => {
+            if (child === null || child === undefined) return [];
+            // 支持jsx传入数组来渲染多个元素；使用props.children 传入的是[[element1]]
+            if (Array.isArray(child)) return child;
+            if (typeof child === 'object') return [child];
+            return createTextElement(child);
+        });
+    };
     return {
         type,
         props: {
             ...props,
-            children: children.map((child) => {
-                return typeof child === 'object' ? child : createTextElement(child);
-            }),
+            children: getChildren(),
         },
     };
 };
@@ -30,8 +37,9 @@ const createDomByType = (type) => {
 };
 
 const handleDomProps = (dom, props) => {
+    if (!props) return;
     Object.entries(props)
-        .filter(([key]) => key !== 'children')
+        .filter(([key, value]) => typeof value !== 'object')
         .forEach(([key, value]) => {
             dom[key] = value;
         });
@@ -48,7 +56,13 @@ const constructFiber = (el, parent) => {
 };
 
 const handleFunctionComponent = (fiber) => {
-    fiber.el.props.children = [fiber.el.type(fiber.el.props)];
+    fiber.el.props.children = [
+        fiber.el.type({
+            ...fiber.el.props,
+            // 修复fiber.el.props.children 在handleFiberRelation中会改变的问题
+            children: fiber.el.props.children,
+        }),
+    ];
 };
 const handleNormalComponent = (fiber) => {
     if (!fiber.dom) {
@@ -60,6 +74,7 @@ const handleFiberRelation = (fiber) => {
     const children = fiber.el.props.children;
     let prevChild = null;
     children.forEach((child) => {
+        // if(!child || !child.length) return;
         const childFiber = constructFiber(child, fiber);
         if (prevChild) {
             prevChild.sibling = childFiber;
@@ -71,6 +86,7 @@ const handleFiberRelation = (fiber) => {
 };
 
 const handleFiber = (fiber) => {
+    // console.log('handleFiber', fiber);
     const isFunctionComponent = typeof fiber.el.type === 'function';
     if (isFunctionComponent) {
         handleFunctionComponent(fiber);
