@@ -38,11 +38,17 @@ const createDomByType = (type) => {
 
 const handleDomProps = (dom, props) => {
     if (!props) return;
-    Object.entries(props)
-        .filter(([key, value]) => typeof value !== 'object')
-        .forEach(([key, value]) => {
+    Object.entries(props).forEach(([key, value]) => {
+        // 事件绑定，如onClick
+        if (key.startsWith('on') && typeof value === 'function') {
+            const eventType = key.substring(2).toLowerCase();
+            dom.addEventListener(eventType, value);
+            return;
+        }
+        if (typeof value !== 'object') {
             dom[key] = value;
-        });
+        }
+    });
 };
 
 const constructFiber = (el, parent) => {

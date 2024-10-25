@@ -13,6 +13,13 @@ const Counter = (props) => {
                     return <div key={item}>{item}</div>;
                 })}
             </div>
+            <button
+                onClick={() => {
+                    console.log('click');
+                }}
+            >
+                +1
+            </button>
             <p>count: {props.count}</p>
         </>
     );
@@ -26,7 +33,7 @@ export const App = () => {
                 <a target="#">linK </a>
                 <b>react</b>
             </p>
-            <Counter count={300}></Counter>
+            {/* <Counter count={300}></Counter> */}
             <Counter count={10}>TEST123</Counter>
         </div>
     );
