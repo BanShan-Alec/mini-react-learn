@@ -3,10 +3,16 @@ import React from '../core/React.js';
 
 let count = 0;
 const Counter = (props) => {
-    console.log('Counter', props);
+    // console.log('Counter', props);
     const testArr = [1, 2, 3];
-    const Even = () => <div>even</div>;
-    const Odd = () => <b>odd</b>;
+    const Even = () => (
+        <div>
+            even
+            <div>你真棒，我是Even</div>
+            <div>不是吧</div>
+        </div>
+    );
+    const Odd = () => <div>odd</div>;
 
     return (
         <>
@@ -27,7 +33,16 @@ const Counter = (props) => {
             </button>
             {/* <p>count: {props.count}</p> */}
             <p>count: {count}</p>
-            <p>{count % 2 ? <Odd /> : "even"}</p>
+            {/* <p>{count % 2 ? <Odd /> : <Even />}</p> */}
+            <p>
+                {count % 2 ? (
+                    <div>
+                        foo<div>child</div><div>kid</div>
+                    </div>
+                ) : (
+                    <div>bar</div>
+                )}
+            </p>
         </>
     );
 };

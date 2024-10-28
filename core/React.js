@@ -149,6 +149,13 @@ const reconcileChildren = (fiber, children) => {
             oldFiber = oldFiber.sibling;
         }
     });
+
+    // 删除多余的fiber
+    while (oldFiber) {
+        oldFiber.effectTag = 'delete';
+        deletions.push(oldFiber);
+        oldFiber = oldFiber.sibling;
+    }
 };
 
 const handleFiber = (fiber) => {
