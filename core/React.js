@@ -122,6 +122,13 @@ const reconcileChildren = (fiber, children) => {
                 effectTag: 'update',
             });
         } else {
+            if (oldFiber) {
+                // delete
+                console.log('delete', oldFiber);
+                // 收集待删除的fiber，下一次commitWork时删除
+                oldFiber.effectTag = 'delete';
+                deletions.push(oldFiber);
+            }
             // new
             newFiber = constructFiber(curEl, {
                 parent: fiber,
@@ -145,7 +152,7 @@ const reconcileChildren = (fiber, children) => {
 };
 
 const handleFiber = (fiber) => {
-    console.log('handleFiber', fiber);
+    // console.log('handleFiber', fiber);
     const isFunctionComponent = typeof fiber.el.type === 'function';
     if (isFunctionComponent) {
         handleFunctionComponent(fiber);
@@ -173,6 +180,7 @@ const handleFiber = (fiber) => {
 let nextFiber = null;
 let firstFiber = null;
 let rootFiber = null;
+let deletions = [];
 function workLoop(deadline) {
     while (deadline.timeRemaining() > 16) {
         // 执行任务
@@ -184,6 +192,7 @@ function workLoop(deadline) {
             // 等待链表构建完成，再渲染
             if (firstFiber) {
                 console.log('render: start', firstFiber);
+                handleDeletions();
                 commitWork(firstFiber);
                 console.log('render: end');
                 rootFiber = firstFiber;
@@ -195,17 +204,33 @@ function workLoop(deadline) {
 }
 requestIdleCallback(workLoop);
 
+function handleDeletions() {
+    console.log('handleDeletions', deletions);
+
+    deletions.forEach(commitWork);
+    deletions = [];
+}
+function getFiberDom(fiber, relation) {
+    if (!fiber) return null;
+    if (fiber.dom) {
+        return fiber.dom;
+    }
+    return getFiberDom(fiber[relation], relation);
+}
+
 function commitWork(fiber) {
+    if (fiber.effectTag === 'delete') {
+        // fiber.parent.dom.removeChild(fiber.dom);
+        const childDom = getFiberDom(fiber, 'child');
+        const parentDom = getFiberDom(fiber.parent, 'parent');
+        console.log('delete', childDom, parentDom);
+
+        parentDom.removeChild(childDom);
+        return;
+    }
     if (fiber.effectTag === 'placement') {
         if (fiber.dom) {
-            let tmpFiber = fiber;
-            while (tmpFiber) {
-                if (tmpFiber.parent?.dom) {
-                    tmpFiber.parent.dom.appendChild(fiber.dom);
-                    break;
-                }
-                tmpFiber = tmpFiber.parent;
-            }
+            getFiberDom(fiber.parent, 'parent')?.appendChild(fiber.dom);
         }
     } else if (fiber.effectTag === 'update') {
         handleDomProps(fiber.dom, fiber.el.props, fiber.alternate?.el.props);

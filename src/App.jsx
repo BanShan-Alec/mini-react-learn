@@ -5,6 +5,8 @@ let count = 0;
 const Counter = (props) => {
     console.log('Counter', props);
     const testArr = [1, 2, 3];
+    const Even = () => <div>even</div>;
+    const Odd = () => <b>odd</b>;
 
     return (
         <>
@@ -25,17 +27,7 @@ const Counter = (props) => {
             </button>
             {/* <p>count: {props.count}</p> */}
             <p>count: {count}</p>
-            {count % 2 ? (
-                <p
-                    style={{
-                        color: 'red',
-                    }}
-                >
-                    {'odd'}
-                </p>
-            ) : (
-                <p>even</p>
-            )}
+            <p>{count % 2 ? <Odd /> : "even"}</p>
         </>
     );
 };
