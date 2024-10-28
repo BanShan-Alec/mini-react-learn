@@ -36,28 +36,60 @@ const createDomByType = (type) => {
     }
 };
 
-const handleDomProps = (dom, props) => {
+const handleDomProps = (dom, props, oldProps = {}) => {
     if (!props) return;
+    // 如何更新props(新旧的fiber是同一个dom)
+    // 1. old 有 new 无，删除
+    Object.entries(oldProps).forEach(([key, value]) => {
+        if (props[key]) return;
+        if (key.startsWith('on') && typeof value === 'function') {
+            const eventType = key.substring(2).toLowerCase();
+            dom.removeEventListener(eventType, value);
+        } else if (key === 'style') {
+            dom.setAttribute('style', '');
+        } else if (key !== 'children') {
+            dom.removeAttribute(key);
+        }
+    });
+    // 2. old 无 new 有，添加
+    // 3. old 有 new 有，更新
     Object.entries(props).forEach(([key, value]) => {
+        const oldValue = oldProps[key];
+        if (oldValue === value) return;
         // 事件绑定，如onClick
         if (key.startsWith('on') && typeof value === 'function') {
             const eventType = key.substring(2).toLowerCase();
+            if (oldValue) dom.removeEventListener(eventType, oldValue);
             dom.addEventListener(eventType, value);
-            return;
-        }
-        if (typeof value !== 'object') {
+        } else if (key === 'style' && value) {
+            // [关于使用动态样式的信息 - Web API | MDN](https://developer.mozilla.org/zh-CN/docs/Web/API/CSS_Object_Model/Using_dynamic_styling_information)
+            const styleText = Object.entries(value)
+                .map(([k, v]) => `${k}:${v}`)
+                .join(';');
+            dom.setAttribute('style', styleText);
+        } else if (key !== 'children') {
             dom[key] = value;
         }
     });
 };
 
-const constructFiber = (el, parent) => {
+const constructFiber = (el, options) => {
+    const {
+        dom = null,
+        child = null,
+        sibling = null,
+        parent = null,
+        effectTag = 'placement',
+        alternate = null,
+    } = options || {};
     return {
         el,
-        dom: null,
+        dom,
         parent,
-        child: null,
-        sibling: null,
+        child,
+        sibling,
+        effectTag, //
+        alternate, // 用于diff
     };
 };
 
@@ -78,16 +110,41 @@ const handleNormalComponent = (fiber) => {
 };
 const handleFiberRelation = (fiber) => {
     const children = fiber.el.props.children;
-    let prevChild = null;
-    children.forEach((child) => {
-        // if(!child || !child.length) return;
-        const childFiber = constructFiber(child, fiber);
-        if (prevChild) {
-            prevChild.sibling = childFiber;
+
+    let oldFiber = fiber.alternate?.child;
+    let prevFiber = null;
+    children.forEach((curEl) => {
+        let newFiber = null;
+        const isSameType = oldFiber ? curEl.type === oldFiber.el.type : false;
+
+        if (isSameType) {
+            // update
+            newFiber = constructFiber(curEl, {
+                dom: oldFiber.dom,
+                parent: fiber,
+                alternate: oldFiber,
+                effectTag: 'update',
+            });
         } else {
-            fiber.child = childFiber;
+            // new
+            newFiber = constructFiber(curEl, {
+                parent: fiber,
+                effectTag: 'placement',
+            });
         }
-        prevChild = childFiber;
+
+        if (prevFiber) {
+            prevFiber.sibling = newFiber;
+        } else {
+            fiber.child = newFiber;
+        }
+        // 保存上一个fiber，用于构建链表
+        prevFiber = newFiber;
+
+        // 正在遍历children，oldFiber也要跟着链表指针后移，指向兄弟节点
+        if (oldFiber) {
+            oldFiber = oldFiber.sibling;
+        }
     });
 };
 
@@ -135,20 +192,23 @@ const handleFiber = (fiber) => {
 
 let nextFiber = null;
 let firstFiber = null;
+let rootFiber = null;
 function workLoop(deadline) {
-    while (deadline.timeRemaining() > 1) {
+    while (deadline.timeRemaining() > 16) {
         // 执行任务
         if (nextFiber) {
             console.log('workLoop: do work');
             if (!firstFiber) firstFiber = nextFiber;
             nextFiber = handleFiber(nextFiber);
         } else {
-            console.log('workLoop: work end');
             // 等待链表构建完成，再渲染
-            if (!firstFiber) return;
-            console.log('render: start', firstFiber);
-            commitWork(firstFiber);
-            firstFiber = null;
+            if (firstFiber) {
+                console.log('render: start', firstFiber);
+                commitWork(firstFiber);
+                console.log('render: end');
+                rootFiber = firstFiber;
+                firstFiber = null;
+            }
         }
     }
     requestIdleCallback(workLoop);
@@ -156,38 +216,63 @@ function workLoop(deadline) {
 requestIdleCallback(workLoop);
 
 function commitWork(fiber) {
-    // if (fiber.parent) fiber.parent.dom.appendChild(fiber.dom);
-    // 因为FC的fiber.dom是不存在的，所以需要循环向上查找parent的dom
-    if (fiber.dom) {
-        let tmpFiber = fiber;
-        while (tmpFiber) {
-            if (tmpFiber.parent?.dom) {
-                tmpFiber.parent.dom.appendChild(fiber.dom);
-                break;
+    if (fiber.effectTag === 'placement') {
+        // if (fiber.parent) fiber.parent.dom.appendChild(fiber.dom);
+        // 因为FC的fiber.dom是不存在的，所以需要循环向上查找parent的dom
+        if (fiber.dom) {
+            let tmpFiber = fiber;
+            while (tmpFiber) {
+                if (tmpFiber.parent?.dom) {
+                    tmpFiber.parent.dom.appendChild(fiber.dom);
+                    break;
+                }
+                tmpFiber = tmpFiber.parent;
             }
-            tmpFiber = tmpFiber.parent;
         }
+    } else if (fiber.effectTag === 'update') {
+        handleDomProps(fiber.dom, fiber.el.props, fiber.alternate?.el.props);
     }
+
     if (fiber.child) commitWork(fiber.child);
     if (fiber.sibling) commitWork(fiber.sibling);
 }
 
 export function render(el, container) {
-    const rootFiber = constructFiber(
+    const _rootFiber = constructFiber(
         {
             type: 'ROOT',
             props: {
                 children: [el],
             },
         },
-        null
+        {
+            dom: container,
+        }
     );
-    rootFiber.dom = container;
-    nextFiber = rootFiber;
+    nextFiber = _rootFiber;
+}
+
+export function update() {
+    console.log('update', rootFiber);
+
+    if (!rootFiber) return;
+    // 重新渲染，构建一颗新的fiber树
+    const _rootFiber = constructFiber(
+        {
+            type: 'ROOT',
+            props: rootFiber.el.props,
+        },
+        {
+            dom: rootFiber.dom,
+            alternate: rootFiber,
+        }
+    );
+    nextFiber = _rootFiber;
 }
 
 export default {
     createElement,
     render,
+    update,
     createTextElement,
 };

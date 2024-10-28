@@ -1,6 +1,7 @@
 /* @jsx React.createElement */
 import React from '../core/React.js';
 
+let count = 0;
 const Counter = (props) => {
     console.log('Counter', props);
     const testArr = [1, 2, 3];
@@ -16,11 +17,25 @@ const Counter = (props) => {
             <button
                 onClick={() => {
                     console.log('click');
+                    count++;
+                    React.update();
                 }}
             >
                 +1
             </button>
-            <p>count: {props.count}</p>
+            {/* <p>count: {props.count}</p> */}
+            <p>count: {count}</p>
+            {count % 2 ? (
+                <p
+                    style={{
+                        color: 'red',
+                    }}
+                >
+                    {'odd'}
+                </p>
+            ) : (
+                <p>even</p>
+            )}
         </>
     );
 };
