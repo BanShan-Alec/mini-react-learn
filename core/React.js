@@ -12,7 +12,6 @@ export const createElement = (type, props, ...children) => {
     const getChildren = () => {
         return children.flatMap((child) => {
             if (child === null || child === undefined) return [];
-            // 支持jsx传入数组来渲染多个元素；使用props.children 传入的是[[element1]]
             if (Array.isArray(child)) return child;
             if (typeof child === 'object') return [child];
             return createTextElement(child);
@@ -88,7 +87,7 @@ const constructFiber = (el, options) => {
         parent,
         child,
         sibling,
-        effectTag, //
+        effectTag, // 用于commitWork
         alternate, // 用于diff
     };
 };
@@ -97,7 +96,6 @@ const handleFunctionComponent = (fiber) => {
     fiber.el.props.children = [
         fiber.el.type({
             ...fiber.el.props,
-            // 修复fiber.el.props.children 在handleFiberRelation中会改变的问题
             children: fiber.el.props.children,
         }),
     ];
@@ -108,9 +106,7 @@ const handleNormalComponent = (fiber) => {
         handleDomProps(dom, fiber.el.props);
     }
 };
-const handleFiberRelation = (fiber) => {
-    const children = fiber.el.props.children;
-
+const reconcileChildren = (fiber, children) => {
     let oldFiber = fiber.alternate?.child;
     let prevFiber = null;
     children.forEach((curEl) => {
@@ -157,29 +153,13 @@ const handleFiber = (fiber) => {
         handleNormalComponent(fiber);
     }
 
-    // 树结构（前序遍历）展开为链表，一边遍历一边构建链表
-    // https://leetcode.cn/problems/flatten-binary-tree-to-linked-list/solutions/356853/er-cha-shu-zhan-kai-wei-lian-biao-by-leetcode-solu
-    handleFiberRelation(fiber);
+    reconcileChildren(fiber, fiber.el.props.children);
 
     // 返回下一个fiber
     // 返回undefined，表示渲染结束
     if (fiber.child) {
         return fiber.child;
     }
-
-    // if (fiber.sibling) {
-    //     return fiber.sibling;
-    // }
-
-    // FIXME: return parent.sibling，会找不到爷爷节点的兄弟节点（只有一层）
-    // 一直向上找，直到找到有兄弟节点的节点
-    // let tmpFiber = fiber;
-    // while (tmpFiber.parent) {
-    //     if (tmpFiber.parent.sibling) {
-    //         return tmpFiber.parent.sibling;
-    //     }
-    //     tmpFiber = tmpFiber.parent;
-    // }
 
     let tmpFiber = fiber;
     while (tmpFiber) {
@@ -217,8 +197,6 @@ requestIdleCallback(workLoop);
 
 function commitWork(fiber) {
     if (fiber.effectTag === 'placement') {
-        // if (fiber.parent) fiber.parent.dom.appendChild(fiber.dom);
-        // 因为FC的fiber.dom是不存在的，所以需要循环向上查找parent的dom
         if (fiber.dom) {
             let tmpFiber = fiber;
             while (tmpFiber) {
