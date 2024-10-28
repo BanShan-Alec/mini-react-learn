@@ -11,7 +11,7 @@ export const createTextElement = (text) => {
 export const createElement = (type, props, ...children) => {
     const getChildren = () => {
         return children.flatMap((child) => {
-            if (child === null || child === undefined) return [];
+            if (child === null || child === undefined || typeof child === 'boolean') return [];
             if (Array.isArray(child)) return child;
             if (typeof child === 'object') return [child];
             return createTextElement(child);
@@ -111,7 +111,7 @@ const reconcileChildren = (fiber, children) => {
     let prevFiber = null;
     children.forEach((curEl) => {
         let newFiber = null;
-        const isSameType = oldFiber ? curEl.type === oldFiber.el.type : false;
+        const isSameType = oldFiber && curEl ? curEl.type === oldFiber.el.type : false;
 
         if (isSameType) {
             // update
@@ -130,10 +130,12 @@ const reconcileChildren = (fiber, children) => {
                 deletions.push(oldFiber);
             }
             // new
-            newFiber = constructFiber(curEl, {
-                parent: fiber,
-                effectTag: 'placement',
-            });
+            if (curEl) {
+                newFiber = constructFiber(curEl, {
+                    parent: fiber,
+                    effectTag: 'placement',
+                });
+            }
         }
 
         if (prevFiber) {
@@ -141,8 +143,8 @@ const reconcileChildren = (fiber, children) => {
         } else {
             fiber.child = newFiber;
         }
-        // 保存上一个fiber，用于构建链表
-        prevFiber = newFiber;
+        // 保存上一个fiber，用于构建链表; 空fiber则跳过
+        if (newFiber) prevFiber = newFiber;
 
         // 正在遍历children，oldFiber也要跟着链表指针后移，指向兄弟节点
         if (oldFiber) {
@@ -159,6 +161,7 @@ const reconcileChildren = (fiber, children) => {
 };
 
 const handleFiber = (fiber) => {
+    if (!fiber.el) return;
     // console.log('handleFiber', fiber);
     const isFunctionComponent = typeof fiber.el.type === 'function';
     if (isFunctionComponent) {
@@ -212,8 +215,6 @@ function workLoop(deadline) {
 requestIdleCallback(workLoop);
 
 function handleDeletions() {
-    console.log('handleDeletions', deletions);
-
     deletions.forEach(commitWork);
     deletions = [];
 }
@@ -232,7 +233,7 @@ function commitWork(fiber) {
         const parentDom = getFiberDom(fiber.parent, 'parent');
         console.log('delete', childDom, parentDom);
 
-        parentDom.removeChild(childDom);
+        if (parentDom && childDom) parentDom.removeChild(childDom);
         return;
     }
     if (fiber.effectTag === 'placement') {

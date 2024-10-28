@@ -12,7 +12,16 @@ const Counter = (props) => {
             <div>不是吧</div>
         </div>
     );
-    const Odd = () => <div>odd</div>;
+    const Odd = () => {
+        return null;
+        return (
+            <div>
+                odd
+                <div>你真棒，我是Odd</div>
+                <div>不是吧</div>
+            </div>
+        );
+    };
 
     return (
         <>
@@ -33,16 +42,18 @@ const Counter = (props) => {
             </button>
             {/* <p>count: {props.count}</p> */}
             <p>count: {count}</p>
-            {/* <p>{count % 2 ? <Odd /> : <Even />}</p> */}
-            <p>
+            <p>{count % 2 ? <Odd /> : <Even />}</p>
+            {/* <p>
                 {count % 2 ? (
                     <div>
-                        foo<div>child</div><div>kid</div>
+                    foo<div>child</div><div>kid</div>
                     </div>
-                ) : (
-                    <div>bar</div>
-                )}
-            </p>
+                    ) : (
+                        <div>bar</div>
+                        )}
+                        </p> */}
+            {!!count && <div>hello react</div>}
+            {/* {count ? <div>hello react</div> : null} */}
         </>
     );
 };
