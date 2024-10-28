@@ -13,7 +13,7 @@ const Counter = (props) => {
         </div>
     );
     const Odd = () => {
-        return null;
+        // return null;
         return (
             <div>
                 odd

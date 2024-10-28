@@ -102,6 +102,8 @@ const handleFunctionComponent = (fiber) => {
 };
 const handleNormalComponent = (fiber) => {
     if (!fiber.dom) {
+        // 使用<>包裹，type是undefined，所以需要特殊处理
+        if (!fiber.el.type) return;
         const dom = (fiber.dom = createDomByType(fiber.el.type));
         handleDomProps(dom, fiber.el.props);
     }
